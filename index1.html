@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deobfuscation Studio</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --primary-color: #238636;
+            --primary-hover: #2ea043;
+            --accent-color: #1f6feb;
+            --danger-color: #da3633;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ffffff;
+        }
+
+        /* Khu vực cấu hình */
+        .config-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        select, input[type="text"] {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* Khu vực Editors */
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 400px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: #7ee787; /* Màu xanh lá kiểu hacker/code */
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 14px;
+            padding: 12px;
+            border-radius: 6px;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: #484f58;
+        }
+
+        /* Hệ thống nút bấm */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: #ffffff;
+        }
+
+        .btn-run { background-color: var(--primary-color); }
+        .btn-run:hover { background-color: var(--primary-hover); }
+
+        .btn-copy { background-color: var(--accent-color); }
+        .btn-copy:hover { background-color: #388bfd; }
+
+        .btn-download { background-color: #21262d; border: 1px solid var(--border-color); color: #c9d1d9;}
+        .btn-download:hover { background-color: #30363d; }
+
+        .btn-clear { background-color: var(--danger-color); }
+        .btn-clear:hover { background-color: #f85149; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Deobfuscation Studio (Lua / Luau)</h1>
+    
+    <div class="config-section">
+        <label for="typeSelect">Loại Code:</label>
+        <select id="typeSelect">
+            <option value="lua">Lua</option>
+            <option value="luau">Luau (Roblox)</option>
+        </select>
+
+        <label for="linkInput">Hoặc nhập Link script:</label>
+        <input type="text" id="linkInput" placeholder="https://raw.githubusercontent.com/.../script.lua">
+    </div>
+
+    <div class="editor-container">
+        <div class="box">
+            <label for="inputCode">Input Code (Hoặc tự động tải từ link ở trên):</label>
+            <textarea id="inputCode" placeholder="Dán đoạn code Lua/Luau đã bị obfuscate vào đây..."></textarea>
+        </div>
+        <div class="box">
+            <label for="outputCode">Kết quả Deobfuscate:</label>
+            <textarea id="outputCode" placeholder="Code sạch sẽ hiển thị ở đây..." readonly></textarea>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-run" onclick="runDeobfuscation()">RunDeobfuscation</button>
+        <button class="btn-copy" onclick="copyToClipboard()">Copy</button>
+        <button class="btn-download" onclick="downloadCode()">Download</button>
+        <button class="btn-clear" onclick="clearAll()">Clear</button>
+    </div>
+</div>
+
+<script>
+    // Hàm xử lý chính khi bấm nút Run
+    async function runDeobfuscation() {
+        const type = document.getElementById('typeSelect').value;
+        const link = document.getElementById('linkInput').value.trim();
+        let inputCode = document.getElementById('inputCode').value;
+        const outputTextArea = document.getElementById('outputCode');
+
+        outputTextArea.value = "Đang xử lý... Vui lòng đợi...";
+
+        // 1. Nếu người dùng nhập link, tiến hành fetch code về trước
+        if (link) {
+            try {
+                const response = await fetch(link);
+                if (!response.ok) throw new Error("Không thể tải file từ URL này.");
+                inputCode = await response.text();
+                document.getElementById('inputCode').value = inputCode; // Đổ ngược code vào ô input cho user thấy
+            } catch (error) {
+                outputTextArea.value = "[LỖI TẢI LINK]: " + error.message;
+                return;
+            }
+        }
+
+        if (!inputCode.trim()) {
+            outputTextArea.value = "Vui lòng nhập code hoặc link script trước khi chạy!";
+            return;
+        }
+
+        // 2. Khu vực xử lý Logic Deobfuscate (Hiện tại là giả lập demo)
+        setTimeout(() => {
+            let result = `-- Deobfuscated bằng Studio Cực Mạnh\n`;
+            result += `-- Loại cấu hình: ${type.toUpperCase()}\n\n`;
+            
+            // DEMO: Giả định xử lý đơn giản (sau này bro thay logic thật hoặc API vào đây nhé)
+            result += inputCode
+                .replace(/\\x([0-9A-Fa-f]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16))) // Giải mã hex sơ đẳng
+                .replace(/\\(\d{1,3})/g, (match, dec) => String.fromCharCode(parseInt(dec, 10))); // Giải mã decimal sơ đẳng
+
+            outputTextArea.value = result;
+        }, 1000); // Giả lập thời gian xử lý 1 giây
+    }
+
+    // Hàm Copy Code
+    function copyToClipboard() {
+        const outputCode = document.getElementById('outputCode').value;
+        if (!outputCode || outputCode.startsWith("Code sạch sẽ") || outputCode.startsWith("Đang xử lý")) {
+            alert("Chưa có code sạch để copy bro ơi!");
+            return;
+        }
+        navigator.clipboard.writeText(outputCode);
+        alert("Đã copy code vào bộ nhớ đệm!");
+    }
+
+    // Hàm Tải file về máy (.lua hoặc .luau tùy option chọn)
+    function downloadCode() {
+        const outputCode = document.getElementById('outputCode').value;
+        const type = document.getElementById('typeSelect').value;
+        
+        if (!outputCode || outputCode.startsWith("Code sạch sẽ") || outputCode.startsWith("Đang xử lý")) {
+            alert("Chưa có code để tải về!");
+            return;
+        }
+
+        const blob = new Blob([outputCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `deobfuscated_script.${type}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Hàm xóa sạch dữ liệu để làm lại từ đầu
+    function clearAll() {
+        document.getElementById('linkInput').value = "";
+        document.getElementById('inputCode').value = "";
+        document.getElementById('outputCode').value = "";
+    }
+</script>
+
+</body>
+  </html>
+          
