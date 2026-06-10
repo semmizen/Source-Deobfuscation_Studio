@@ -304,5 +304,44 @@
     // Hàm sao chép mã nguồn ra bộ nhớ đệm
     function copyToClipboard() {
         const outputCode = document.getElementById('outputCode').value;
-        if (!outputCode || outputCode.
-                             
+        if (!outputCode || outputCode.startsWith("Mã nguồn sạch") || outputCode.startsWith("Hệ thống đang kích hoạt")) {
+            alert("Chưa có mã nguồn sạch được xử lý để copy bro ơi!");
+            return;
+        }
+        navigator.clipboard.writeText(outputCode);
+        alert("Đã copy toàn bộ mã nguồn sạch vào bộ nhớ đệm!");
+    }
+
+    // Hàm xuất bản tải file (.lua hoặc .luau)
+    function downloadCode() {
+        const outputCode = document.getElementById('outputCode').value;
+        const type = document.getElementById('typeSelect').value;
+        
+        if (!outputCode || outputCode.startsWith("Mã nguồn sạch") || outputCode.startsWith("Hệ thống đang kích hoạt")) {
+            alert("Không tìm thấy dữ liệu hợp lệ để tải xuống!");
+            return;
+        }
+
+        const blob = new Blob([outputCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `studio_deobfuscated.${type}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Hàm Reset dọn dẹp Studio
+    function clearAll() {
+        document.getElementById('linkInput').value = "";
+        document.getElementById('inputCode').value = "";
+        document.getElementById('outputCode').value = "";
+        document.getElementById('studioLog').innerText = "Hệ thống đã được làm sạch. Sẵn sàng nhận lệnh mới.";
+    }
+</script>
+
+</body>
+            </html>
+                
