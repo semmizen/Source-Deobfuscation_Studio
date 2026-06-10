@@ -35,7 +35,7 @@
 
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1300px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -105,12 +105,12 @@
 
         textarea {
             width: 100%;
-            height: 400px;
+            height: 420px;
             background-color: var(--bg-color);
             border: 1px solid var(--border-color);
             color: #7ee787; /* Màu xanh lá kiểu hacker/code */
             font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 14px;
+            font-size: 13px;
             padding: 12px;
             border-radius: 6px;
             resize: vertical;
@@ -119,6 +119,25 @@
 
         textarea::placeholder {
             color: #484f58;
+        }
+
+        /* Nhật ký Console log của Studio */
+        .log-section {
+            margin-bottom: 20px;
+        }
+        
+        .log-box {
+            width: 100%;
+            height: 120px;
+            background-color: #070a0e;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            color: #58a6ff;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-y: auto;
+            white-space: pre-wrap;
         }
 
         /* Hệ thống nút bấm */
@@ -175,13 +194,18 @@
             <textarea id="inputCode" placeholder="Dán đoạn code Lua/Luau đã bị obfuscate vào đây..."></textarea>
         </div>
         <div class="box">
-            <label for="outputCode">Kết quả Deobfuscate:</label>
-            <textarea id="outputCode" placeholder="Code sạch sẽ hiển thị ở đây..." readonly></textarea>
+            <label for="outputCode">Kết quả Deobfuscate hoàn chỉnh:</label>
+            <textarea id="outputCode" placeholder="Mã nguồn sạch sẽ qua 10 lớp xử lý sẽ xuất hiện ở đây..." readonly></textarea>
         </div>
     </div>
 
+    <div class="log-section">
+        <label>Tiến trình giải mã hệ thống (Studio Diagnostics Log):</label>
+        <div id="studioLog" class="log-box">Hệ thống đang ở trạng thái chờ lệnh...</div>
+    </div>
+
     <div class="btn-group">
-        <button class="btn-run" onclick="runDeobfuscation()">RunDeobfuscation</button>
+        <button class="btn-run" onclick="runDeobfuscation()">Run Deobfuscation</button>
         <button class="btn-copy" onclick="copyToClipboard()">Copy</button>
         <button class="btn-download" onclick="downloadCode()">Download</button>
         <button class="btn-clear" onclick="clearAll()">Clear</button>
@@ -189,87 +213,96 @@
 </div>
 
 <script>
-    // Hàm xử lý chính khi bấm nút Run
+    // Định nghĩa Object toàn cục giống như thiết kế trong các Layer file từ 1-10
+    const DeobfuscationStudio = {
+        modules: [],
+        registerModule: function(name, executionFunction) {
+            this.modules.push({ name: name, run: executionFunction });
+            this.log(`[CÀI ĐẶT]: Đã liên kết module "${name}" vào nhân xử lý thành công.`);
+        },
+        log: function(msg) {
+            const logBox = document.getElementById('studioLog');
+            logBox.innerText += "\n" + msg;
+            logBox.scrollTop = logBox.scrollHeight;
+        },
+        clearLog: function() {
+            document.getElementById('studioLog').innerText = "[HỆ THỐNG]: Bắt đầu tiến trình phân tích...";
+        }
+    };
+</script>
+
+<script src="script1.js"></script>
+<script src="script2.js"></script>
+<script src="script3.js"></script>
+<script src="script4.js"></script>
+<script src="script5.js"></script>
+<script src="script6.js"></script>
+<script src="script7.js"></script>
+<script src="script8.js"></script>
+<script src="script9.js"></script>
+<script src="script10.js"></script>
+
+<script>
+    // Hàm xử lý chính luồng Pipeline khi bấm nút Run
     async function runDeobfuscation() {
         const type = document.getElementById('typeSelect').value;
         const link = document.getElementById('linkInput').value.trim();
-        let inputCode = document.getElementById('inputCode').value;
+        let currentCode = document.getElementById('inputCode').value;
         const outputTextArea = document.getElementById('outputCode');
 
-        outputTextArea.value = "Đang xử lý... Vui lòng đợi...";
+        DeobfuscationStudio.clearLog();
+        outputTextArea.value = "Hệ thống đang kích hoạt bộ lọc 10 tầng xử lý... Vui lòng đợi...";
 
-        // 1. Nếu người dùng nhập link, tiến hành fetch code về trước
+        // 1. Tải code từ URL nếu có cấu hình link
         if (link) {
             try {
+                DeobfuscationStudio.log(`[TẢI LIỆU]: Đang gửi request lấy dữ liệu từ: ${link}`);
                 const response = await fetch(link);
-                if (!response.ok) throw new Error("Không thể tải file từ URL này.");
-                inputCode = await response.text();
-                document.getElementById('inputCode').value = inputCode; // Đổ ngược code vào ô input cho user thấy
+                if (!response.ok) throw new Error("HTTP Status: " + response.status);
+                currentCode = await response.text();
+                document.getElementById('inputCode').value = currentCode;
+                DeobfuscationStudio.log(`[THÀNH CÔNG]: Đã tải xong mã nguồn mục tiêu.`);
             } catch (error) {
-                outputTextArea.value = "[LỖI TẢI LINK]: " + error.message;
+                outputTextArea.value = "[LỖI TẢI LINK]: Không thể nạp script từ URL.\nChi tiết: " + error.message;
+                DeobfuscationStudio.log(`[LỖI]: Tiến trình nạp URL thất bại.`);
                 return;
             }
         }
 
-        if (!inputCode.trim()) {
-            outputTextArea.value = "Vui lòng nhập code hoặc link script trước khi chạy!";
+        if (!currentCode.trim()) {
+            outputTextArea.value = "Vui lòng nhập mã nguồn cần xử lý hoặc chèn link Raw GitHub script!";
+            DeobfuscationStudio.log(`[CẢNH BÁO]: Input trống.`);
             return;
         }
 
-        // 2. Khu vực xử lý Logic Deobfuscate (Hiện tại là giả lập demo)
-        setTimeout(() => {
-            let result = `-- Deobfuscated bằng Studio Cực Mạnh\n`;
-            result += `-- Loại cấu hình: ${type.toUpperCase()}\n\n`;
-            
-            // DEMO: Giả định xử lý đơn giản (sau này bro thay logic thật hoặc API vào đây nhé)
-            result += inputCode
-                .replace(/\\x([0-9A-Fa-f]{2})/g, (match, hex) => String.fromCharCode(parseInt(hex, 16))) // Giải mã hex sơ đẳng
-                .replace(/\\(\d{1,3})/g, (match, dec) => String.fromCharCode(parseInt(dec, 10))); // Giải mã decimal sơ đẳng
+        // 2. Chạy Pipeline xuyên suốt qua mạng lưới Module đã đăng ký
+        setTimeout(async () => {
+            try {
+                let currentPayload = currentCode;
+                
+                DeobfuscationStudio.log(`[PIPELINE]: Khởi động chuỗi xử lý gồm ${DeobfuscationStudio.modules.length} modules...`);
+                
+                // Duyệt qua từng tầng đã được nạp sẵn từ script1.js đến script10.js
+                for (let i = 0; i < DeobfuscationStudio.modules.length; i++) {
+                    const module = DeobfuscationStudio.modules[i];
+                    DeobfuscationStudio.log(`-> Đang xử lý ở Tầng [Layer ${i+1}]: ${module.name}...`);
+                    
+                    // Thực thi thuật toán của tầng hiện tại và chuyển giao kết quả cho tầng kế tiếp
+                    currentPayload = await module.run(currentPayload, type);
+                }
 
-            outputTextArea.value = result;
-        }, 1000); // Giả lập thời gian xử lý 1 giây
+                outputTextArea.value = currentPayload;
+                DeobfuscationStudio.log(`[HOÀN THÀNH]: Mã nguồn đã được dọn sạch hoàn toàn qua 10 lớp!`);
+
+            } catch (pipelineError) {
+                outputTextArea.value = "[LỖI PIPELINE THỰC THI]: " + pipelineError.message;
+                DeobfuscationStudio.log(`[LỖI PHÁT SINH]: Cấu trúc mã hóa gây gãy luồng xử lý.`);
+            }
+        }, 300);
     }
 
-    // Hàm Copy Code
+    // Hàm sao chép mã nguồn ra bộ nhớ đệm
     function copyToClipboard() {
         const outputCode = document.getElementById('outputCode').value;
-        if (!outputCode || outputCode.startsWith("Code sạch sẽ") || outputCode.startsWith("Đang xử lý")) {
-            alert("Chưa có code sạch để copy bro ơi!");
-            return;
-        }
-        navigator.clipboard.writeText(outputCode);
-        alert("Đã copy code vào bộ nhớ đệm!");
-    }
-
-    // Hàm Tải file về máy (.lua hoặc .luau tùy option chọn)
-    function downloadCode() {
-        const outputCode = document.getElementById('outputCode').value;
-        const type = document.getElementById('typeSelect').value;
-        
-        if (!outputCode || outputCode.startsWith("Code sạch sẽ") || outputCode.startsWith("Đang xử lý")) {
-            alert("Chưa có code để tải về!");
-            return;
-        }
-
-        const blob = new Blob([outputCode], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `deobfuscated_script.${type}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    // Hàm xóa sạch dữ liệu để làm lại từ đầu
-    function clearAll() {
-        document.getElementById('linkInput').value = "";
-        document.getElementById('inputCode').value = "";
-        document.getElementById('outputCode').value = "";
-    }
-</script>
-
-</body>
-  </html>
-          
+        if (!outputCode || outputCode.
+                             
